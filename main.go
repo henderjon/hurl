@@ -41,7 +41,7 @@ func init() {
 	flag.BoolVar(&optPostForm, "pf", false, "form-urlencode the POST; sugar for '-X POST -f'")
 	flag.BoolVar(&optSilence, "s", false, "shutup")
 	flag.BoolVar(&optQueryString, "q", false, "append -d's to the target URL as a query string")
-	flag.BoolVar(&optOutFile, "file", false, "write the output to a similarly named local file; to specify a different filename, simply redirect stdout")
+	flag.BoolVar(&optOutFile, "save", false, "write the output to a similarly named local file; to specify a different filename, simply redirect stdout")
 	flag.Var(&optHeaders, "h", "`param=value` headers for the request")
 	flag.Var(&optData, "d", "`param=value` data for the request")
 	flag.StringVar(&optHTTPAction, "X", "GET", "specify the HTTP `action` (e.g. GET, POST, etc)")

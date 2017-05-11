@@ -10,7 +10,7 @@ Options:
   - `-d "key=value"` adds the key value pair to the request body.
   - `-h "key=value"` adds the key value pair to the request headers.
   - `-s` silences all the output except the incoming response body.
-  - `-file` writes the incoming response body to a similaraly named local file.
+  - `-save` writes the incoming response body to a similaraly named local file.
   - `-help` prints the help dialogue
 
 ### TODO
