@@ -11,6 +11,7 @@ Options:
   - `-h "key=value"` adds the key value pair to the request headers.
   - `-s` silences all the output except the incoming response body.
   - `-save` writes the incoming response body to a similaraly named local file.
+  - `-stdin` reads the reqeust body from stdin; request will ignore all `-d`'s
   - `-help` prints the help dialogue
 
 ### TODO

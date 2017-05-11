@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"flag"
 	"fmt"
@@ -11,6 +12,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"strconv"
 	"strings"
 )
 
@@ -27,7 +29,8 @@ const (
 var (
 	optFormURLEncode, optSilence,
 	optQueryString, optPostForm,
-	optOutFile, help bool
+	optOutFile, optReadStdin,
+	help bool
 	optHTTPAction, optTargetURL string
 	stderr, stdout              *log.Logger
 	optHeaders                  = multiParams{}
@@ -42,6 +45,7 @@ func init() {
 	flag.BoolVar(&optSilence, "s", false, "shutup")
 	flag.BoolVar(&optQueryString, "q", false, "append -d's to the target URL as a query string")
 	flag.BoolVar(&optOutFile, "save", false, "write the output to a similarly named local file; to specify a different filename, simply redirect stdout")
+	flag.BoolVar(&optReadStdin, "stdin", false, "read the request body from stdin; request will ingore all -d's")
 	flag.Var(&optHeaders, "h", "`param=value` headers for the request")
 	flag.Var(&optData, "d", "`param=value` data for the request")
 	flag.StringVar(&optHTTPAction, "X", "GET", "specify the HTTP `action` (e.g. GET, POST, etc)")
@@ -96,14 +100,24 @@ func main() {
 		optFormURLEncode = true
 	}
 
-	var body io.Reader
+	var body bytes.Buffer // io.ReadWriter
 	if optQueryString {
 		remote.RawQuery = data.Encode() // force a query string with -q
 	} else {
-		body = bytes.NewBufferString(data.Encode()) // send the data as the body
+
+		if optReadStdin {
+			scanner := bufio.NewScanner(os.Stdin)
+			for scanner.Scan() {
+				body.Write(scanner.Bytes())
+			}
+		}
+
+		if body.Len() == 0 {
+			body.WriteString(data.Encode()) // send the data as the body
+		}
 	}
 
-	req, err := http.NewRequest(optHTTPAction, remote.String(), body)
+	req, err := http.NewRequest(optHTTPAction, remote.String(), &body)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -111,6 +125,7 @@ func main() {
 	req.Header.Set("User-Agent", userAgent)
 	req.Header.Set("Accept", "*/*")
 	req.Header.Set("Host", remote.Host)
+	req.Header.Set("Content-Length", strconv.Itoa(body.Len()))
 	if optFormURLEncode {
 		req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	}
@@ -129,7 +144,7 @@ func main() {
 	}
 
 	stderr.Print("\n")
-	stderr.Printf("%v\n", body)
+	stderr.Printf("%v\n", &body)
 	stderr.Print("\n")
 
 	resp, err := client.Do(req)
