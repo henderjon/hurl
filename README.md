@@ -4,16 +4,14 @@ Inspired by [bat](https://github.com/astaxie/bat) and [kurly](https://github.com
 
 Options:
 
-`-f` is sugar for adding the `Content-Type: application/x-www-form-urlencoded` header.
-`-pf` is sugar for `-X POST -f`.
-`-q` adds all the `-d` to the request URL as query string
-`-d "key=value"` adds the key value pair to the request body.
-`-h "key=value"` adds the key value pair to the request headers.
-`-s` silences all the output except the incoming response body.
-`-file` writes the incoming response body to a similaraly named local file.
-`-help` prints the help dialogue
-  - -stat (roundtrip time?)
-  - -progress
+  - `-f` is sugar for adding the `Content-Type: application/x-www-form-urlencoded` header.
+  - `-pf` is sugar for `-X POST -f`.
+  - `-q` adds all the `-d` to the request URL as query string
+  - `-d "key=value"` adds the key value pair to the request body.
+  - `-h "key=value"` adds the key value pair to the request headers.
+  - `-s` silences all the output except the incoming response body.
+  - `-file` writes the incoming response body to a similaraly named local file.
+  - `-help` prints the help dialogue
 
 ### TODO
 
