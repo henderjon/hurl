@@ -2,7 +2,7 @@
 
 Inspired by [bat](https://github.com/astaxie/bat) and [kurly](https://github.com/davidjpeacock/kurly), `hurl` is simple HTTP requester.
 
-Options:
+### Options
 
   - `-f` is sugar for adding the `Content-Type: application/x-www-form-urlencoded` header.
   - `-pf` is sugar for `-X POST -f`.
@@ -18,4 +18,5 @@ Options:
 
   - stats/roundtrip time
   - progress bars
+  - multipart/form-data (binary data)
 

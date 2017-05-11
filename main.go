@@ -23,7 +23,7 @@ const (
 	prefixOut = ""
 	protocol  = "\x1b[91m%s %s %s\x1b[0m\n"
 	header    = "%s\x1b[90m%s:\x1b[0m \x1b[94m%s\x1b[0m\n"
-	userAgent = "henderjon/hurl v1.0"
+	userAgent = "henderjon/hurl v0.1.0"
 )
 
 var (
