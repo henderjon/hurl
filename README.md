@@ -1,4 +1,4 @@
-## hurl is a small, simple, limited curl-type thingy
+## hurl is a small, simple, and limited curl-type thingy
 
 Inspired by [bat](https://github.com/astaxie/bat) and [kurly](https://github.com/davidjpeacock/kurly), `hurl` is simple HTTP requester.
 
