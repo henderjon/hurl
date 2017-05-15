@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"encoding/base64"
 	"flag"
 	"fmt"
 	"io"
@@ -14,11 +15,12 @@ import (
 	"path"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const (
 	// escape = "\x1b"
-	nl        = "\n"
+	eol       = "\n"
 	prefixIn  = ""
 	prefixOut = ""
 	protocol  = "\x1b[91m%s %s %s\x1b[0m\n"
@@ -32,9 +34,12 @@ var (
 	optOutFile, optReadStdin,
 	help bool
 	optHTTPAction, optTargetURL string
-	stderr, stdout              *log.Logger
 	optHeaders                  = multiParams{}
 	optData                     = multiParams{}
+	optBinData                  = multiParams{}
+	stderr, stdout              *log.Logger
+	now                         = time.Now().Format(time.RFC1123)
+	boundary                    = base64.StdEncoding.EncodeToString([]byte(now))
 )
 
 func init() {
@@ -48,6 +53,7 @@ func init() {
 	flag.BoolVar(&optReadStdin, "stdin", false, "read the request body from stdin; request will ingore all -d's")
 	flag.Var(&optHeaders, "h", "`param=value` headers for the request")
 	flag.Var(&optData, "d", "`param=value` data for the request")
+	flag.Var(&optBinData, "b", "`param=filename.ext` binary data for the request; will force 'Content-Type: multipart/form-data'")
 	flag.StringVar(&optHTTPAction, "X", "GET", "specify the HTTP `action` (e.g. GET, POST, etc)")
 
 	flag.Parse()
@@ -101,9 +107,17 @@ func main() {
 	}
 
 	var body bytes.Buffer // io.ReadWriter
+	// var boundary string
 	if optQueryString {
 		remote.RawQuery = data.Encode() // force a query string with -q
 	} else {
+
+		if len(optBinData) > 0 {
+			parseBinData(&body, optBinData)
+			parseData(&body, optData)
+			body.WriteString("--" + boundary + "--")
+			body.WriteString(eol)
+		}
 
 		if optReadStdin {
 			scanner := bufio.NewScanner(os.Stdin)
@@ -125,7 +139,13 @@ func main() {
 	req.Header.Set("User-Agent", userAgent)
 	req.Header.Set("Accept", "*/*")
 	req.Header.Set("Host", remote.Host)
+	req.Header.Set("Date", now)
 	req.Header.Set("Content-Length", strconv.Itoa(body.Len()))
+
+	if len(optBinData) > 0 {
+		req.Header.Add("Content-Type", "multipart/form-data; boundary="+boundary)
+	}
+
 	if optFormURLEncode {
 		req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	}
@@ -143,9 +163,9 @@ func main() {
 		}
 	}
 
-	stderr.Print("\n")
-	stderr.Printf("%v\n", &body)
-	stderr.Print("\n")
+	stderr.Print(eol)
+	stderr.Printf("%v%s", &body, eol)
+	stderr.Print(eol)
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -157,7 +177,7 @@ func main() {
 
 	printHeaders(resp.Header)
 
-	stderr.Print("\n")
+	stderr.Print(eol)
 
 	local := os.Stdout
 	if optOutFile {

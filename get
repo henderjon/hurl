@@ -1,0 +1,13 @@
+{
+  "args": {}, 
+  "headers": {
+    "Accept": "*/*", 
+    "Accept-Encoding": "gzip", 
+    "Connection": "close", 
+    "Content-Type": "multipart/form-data; boundary=", 
+    "Host": "httpbin.org", 
+    "User-Agent": "henderjon/hurl v0.1.0"
+  }, 
+  "origin": "199.249.109.189", 
+  "url": "http://httpbin.org/get"
+}
