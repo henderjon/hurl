@@ -188,7 +188,7 @@ func (d multiParams) String() string {
 }
 
 func (d multiParams) Set(value string) error {
-	v := strings.Split(value, "=")
+	v := strings.SplitN(value, "=", 2)
 	if len(v) == 2 {
 		d[v[0]] = append(d[v[0]], v[1])
 	}
