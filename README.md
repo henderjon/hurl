@@ -4,8 +4,6 @@ Inspired by [bat](https://github.com/astaxie/bat) and [kurly](https://github.com
 
 ### options
 
-  - `-f` is sugar for adding the `Content-Type: application/x-www-form-urlencoded` header
-  - `-pf` is sugar for `-X POST -f`
   - `-q` adds all the `-d` to the request URL as query string
   - `-d "key=value"` adds the key value pair to the request body
   - `-h "key=value"` adds the key value pair to the request headers
@@ -13,11 +11,17 @@ Inspired by [bat](https://github.com/astaxie/bat) and [kurly](https://github.com
   - `-s` silences all the output except the incoming response body
   - `-save` writes the incoming response body to a similarly named local file
   - `-stdin` reads the request body from stdin; request will ignore all `-d`'s
+  - `-help` prints the help dialog
+  
+  ### (sugar) options
+  
+  - `-f` is sugar for adding the `Content-Type: application/x-www-form-urlencoded` header
+  - `-pf` is sugar for `-X POST -f`
   - `-basic` sugar for adding the `Authorization: Basic $val` header (will base64 encode strings with a ':')
   - `-token` sugar for adding the `Authorization: Token $val` header
   - `-bearer` sugar for adding the `Authorization: Bearer $val` header
   - `-type` sugar for adding the `Content-Type: $val` header
-  - `-help` prints the help dialog
+
 
 ### why
 
