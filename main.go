@@ -53,12 +53,18 @@ func init() {
 	flag.StringVar(&optHTTPAction, "X", "GET", "specify the HTTP `action` (e.g. GET, POST, etc)")
 
 	flag.StringVar(&optURI, "u", "", "the destination URI; if not provided the URI is assumed to be the last arg")
-	flag.StringVar(&optBasic, "basic", "", "sugar for adding the 'Authorization: Basic _____' header")
-	flag.StringVar(&optToken, "token", "", "sugar for adding the 'Authorization: Token _____' header")
-	flag.StringVar(&optBearer, "bearer", "", "sugar for adding the 'Authorization: Bearer _____' header")
-	flag.StringVar(&optType, "type", "", "sugar for adding the 'Content-Type: _____' header")
+	flag.StringVar(&optBasic, "basic", "", "sugar for adding the 'Authorization: Basic $val' header")
+	flag.StringVar(&optToken, "token", "", "sugar for adding the 'Authorization: Token $val' header")
+	flag.StringVar(&optBearer, "bearer", "", "sugar for adding the 'Authorization: Bearer $val' header")
+	flag.StringVar(&optType, "type", "", "sugar for adding the 'Content-Type: $val' header")
 
 	flag.Parse()
+
+	if help {
+		fmt.Println("\n\x1b[91mhurl is a utility for making HTTP requests. \x1b[0m\n")
+		flag.PrintDefaults()
+		os.Exit(0)
+	}
 
 	args := flag.Args()
 
@@ -79,12 +85,6 @@ func init() {
 }
 
 func main() {
-
-	if help {
-		fmt.Println("\n\x1b[91mhurl is a utility for making HTTP requests. \x1b[0m\n")
-		flag.PrintDefaults()
-		return
-	}
 
 	client := http.Client{}
 
