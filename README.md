@@ -13,10 +13,10 @@ Inspired by [bat](https://github.com/astaxie/bat) and [kurly](https://github.com
   - `-s` silences all the output except the incoming response body
   - `-save` writes the incoming response body to a similarly named local file
   - `-stdin` reads the request body from stdin; request will ignore all `-d`'s
-  - `-basic` sugar for adding the 'Authorization: Basic $var' header (will base64 encode strings with a ':')
-  - `-token` sugar for adding the 'Authorization: Token $var' header
-  - `-bearer` sugar for adding the 'Authorization: Bearer $var' header
-  - `-type` sugar for adding the 'Content-Type: $var' header
+  - `-basic` sugar for adding the `Authorization: Basic $val` header (will base64 encode strings with a ':')
+  - `-token` sugar for adding the `Authorization: Token $val` header
+  - `-bearer` sugar for adding the `Authorization: Bearer $val` header
+  - `-type` sugar for adding the `Content-Type: $val` header
   - `-help` prints the help dialog
 
 ### why
