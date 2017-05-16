@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"encoding/base64"
 	"flag"
 	"fmt"
 	"io"
@@ -31,10 +32,11 @@ var (
 	optQueryString, optPostForm,
 	optOutFile, optReadStdin,
 	help bool
-	optHTTPAction, optTargetURL string
-	stderr, stdout              *log.Logger
-	optHeaders                  = multiParams{}
-	optData                     = multiParams{}
+	optHTTPAction, optURI, optBasic,
+	optToken, optBearer, optType string
+	stderr, stdout *log.Logger
+	optHeaders     = multiParams{}
+	optData        = multiParams{}
 )
 
 func init() {
@@ -50,15 +52,23 @@ func init() {
 	flag.Var(&optData, "d", "`param=value` data for the request")
 	flag.StringVar(&optHTTPAction, "X", "GET", "specify the HTTP `action` (e.g. GET, POST, etc)")
 
+	flag.StringVar(&optURI, "u", "", "the destination URI; if not provided the URI is assumed to be the last arg")
+	flag.StringVar(&optBasic, "basic", "", "sugar for adding the 'Authorization: Basic _____' header")
+	flag.StringVar(&optToken, "token", "", "sugar for adding the 'Authorization: Token _____' header")
+	flag.StringVar(&optBearer, "bearer", "", "sugar for adding the 'Authorization: Bearer _____' header")
+	flag.StringVar(&optType, "type", "", "sugar for adding the 'Content-Type: _____' header")
+
 	flag.Parse()
 
 	args := flag.Args()
 
-	if len(args) < 1 {
-		log.Fatal("The URL should be the last arg")
-	}
+	if len(optURI) == 0 {
+		if len(args) == 0 {
+			log.Fatal("The URL should be the last arg or should be specified by -u; use -help for more info")
+		}
 
-	optTargetURL = args[len(args)-1]
+		optURI = args[len(args)-1]
+	}
 
 	stdout = log.New(os.Stdout, "", 0)
 	stderr = log.New(os.Stderr, "", 0)
@@ -78,9 +88,9 @@ func main() {
 
 	client := http.Client{}
 
-	remote, err := url.Parse(optTargetURL)
+	remote, err := url.Parse(optURI)
 	if err != nil {
-		log.Fatal("Unable to parse", optTargetURL)
+		log.Fatal("Unable to parse", optURI)
 	}
 
 	if remote.Scheme == "" {
@@ -122,12 +132,35 @@ func main() {
 		log.Fatal(err)
 	}
 
+	// sugar for basic auth
+	if len(optBasic) > 0 {
+		if strings.Contains(optBasic, ":") {
+			optBasic = base64.StdEncoding.EncodeToString([]byte(optBasic))
+		}
+		req.Header.Set("Authorization", "Basic "+optBasic)
+	}
+
+	// sugar for token auth
+	if len(optToken) > 0 {
+		req.Header.Set("Authorization", "Token "+optToken)
+	}
+
+	// sugar for bearer auth
+	if len(optBearer) > 0 {
+		req.Header.Set("Authorization", "Bearer "+optBearer)
+	}
+
+	// sugar for Content-Type
+	if len(optType) > 0 {
+		req.Header.Set("Content-Type", optType)
+	}
+
 	req.Header.Set("User-Agent", userAgent)
 	req.Header.Set("Accept", "*/*")
 	req.Header.Set("Host", remote.Host)
 	req.Header.Set("Content-Length", strconv.Itoa(body.Len()))
 	if optFormURLEncode {
-		req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded; charset=utf-8")
 	}
 
 	for name, slice := range optHeaders {
@@ -143,9 +176,9 @@ func main() {
 		}
 	}
 
-	stderr.Print("\n")
-	stderr.Printf("%v\n", &body)
-	stderr.Print("\n")
+	stderr.Print(nl)
+	stderr.Printf("%v%s", &body, nl)
+	stderr.Print(nl)
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -157,7 +190,7 @@ func main() {
 
 	printHeaders(resp.Header)
 
-	stderr.Print("\n")
+	stderr.Print(nl)
 
 	local := os.Stdout
 	if optOutFile {
