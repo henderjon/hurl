@@ -4,6 +4,7 @@ Inspired by [bat](https://github.com/astaxie/bat) and [kurly](https://github.com
 
 ### options
 
+  - `-X` use the specified HTTP verb
   - `-q` adds all the `-d` to the request URL as query string
   - `-d "key=value"` adds the key value pair to the request body
   - `-h "key=value"` adds the key value pair to the request headers
