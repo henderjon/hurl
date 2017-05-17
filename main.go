@@ -15,6 +15,7 @@ import (
 	"path"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const (
@@ -24,14 +25,15 @@ const (
 	prefixOut = ""
 	protocol  = "\x1b[91m%s %s %s\x1b[0m\n"
 	header    = "%s\x1b[90m%s:\x1b[0m \x1b[94m%s\x1b[0m\n"
-	userAgent = "hurl/v0.1.2-alpha"
+	summary   = "\x1b[90m%s:\x1b[0m \x1b[94m%s\x1b[0m\n"
+	userAgent = "hurl/v0.1.3-alpha"
 )
 
 var (
 	optFormURLEncode, optSilence,
 	optQueryString, optPostForm,
 	optOutFile, optReadStdin,
-	help bool
+	optSummary, help bool
 	optHTTPAction, optURI, optBasic,
 	optToken, optBearer, optType string
 	stderr, stdout *log.Logger
@@ -48,6 +50,7 @@ func init() {
 	flag.BoolVar(&optQueryString, "q", false, "append -d's to the target URL as a query string")
 	flag.BoolVar(&optOutFile, "save", false, "write the output to a similarly named local file; to specify a different filename, simply redirect stdout")
 	flag.BoolVar(&optReadStdin, "stdin", false, "read the request body from stdin; request will ingore all -d's")
+	flag.BoolVar(&optSummary, "summary", false, "after the request is finished, print a brief summary")
 	flag.Var(&optHeaders, "h", "`param=value` headers for the request")
 	flag.Var(&optData, "d", "`param=value` data for the request")
 	flag.StringVar(&optHTTPAction, "X", "GET", "specify the HTTP `action` (e.g. GET, POST, etc)")
@@ -170,16 +173,13 @@ func main() {
 	}
 
 	stderr.Printf(protocol, req.Method, req.URL.RequestURI(), req.Proto)
-	for k, v := range req.Header {
-		for _, v := range v {
-			stderr.Printf(header, prefixOut, k, v)
-		}
-	}
+	printHeaders(req.Header)
 
 	stderr.Print(nl)
 	stderr.Printf("%v%s", &body, nl)
 	stderr.Print(nl)
 
+	start := time.Now()
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Fatal(err)
@@ -195,15 +195,26 @@ func main() {
 	local := os.Stdout
 	if optOutFile {
 		fname := path.Base(remote.Path)
-		local, err = os.Open(fname)
-		if os.IsNotExist(err) {
-			local, _ = os.Create(fname)
-		} else {
+		local, err = os.OpenFile(fname, os.O_RDWR|os.O_TRUNC|os.O_CREATE, 0644)
+		if err != nil {
 			log.Fatal(err)
 		}
 	}
 
-	io.Copy(local, resp.Body)
+	n, err := io.Copy(local, resp.Body)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	stderr.Println("\n")
+
+	if optSummary {
+		// stderr.Println("\x1b[91m//------------------------------------------------------------------------//\x1b[0m")
+		stderr.Println("\x1b[91m---------------\x1b[0m")
+		stderr.Printf(summary, "Content-Length", strconv.FormatInt(resp.ContentLength, 10))
+		stderr.Printf(summary, "Bytes Received", strconv.FormatInt(n, 10))
+		stderr.Printf(summary, "Request Duration", time.Since(start).String())
+	}
 }
 
 func printHeaders(headers map[string][]string) {

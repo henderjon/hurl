@@ -10,12 +10,13 @@ Inspired by [bat](https://github.com/astaxie/bat) and [kurly](https://github.com
   - `-h "key=value"` adds the key value pair to the request headers
   - `-u` the destination URI; if not provided the URI is assumed to be the last arg
   - `-s` silences all the output except the incoming response body
+  - `-summary` outputs the bytes received and the roundtrip time
   - `-save` writes the incoming response body to a similarly named local file
   - `-stdin` reads the request body from stdin; request will ignore all `-d`'s
   - `-help` prints the help dialog
-  
+
   ### (sugar) options
-  
+
   - `-f` is sugar for adding the `Content-Type: application/x-www-form-urlencoded` header
   - `-pf` is sugar for `-X POST -f`
   - `-basic` sugar for adding the `Authorization: Basic $val` header (will base64 encode strings with a ':')
@@ -30,7 +31,6 @@ Whenever I build HTTP APis, there seems to be a number of utilities that do more
 
 ### todo
 
-  - stats/roundtrip time
   - progress bars
   - multipart/form-data (binary data)
 
