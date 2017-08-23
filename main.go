@@ -33,9 +33,10 @@ var (
 	optFormURLEncode, optSilence,
 	optQueryString, optPostForm,
 	optOutFile, optReadStdin,
-	optSummary, help bool
+	optSummary, optPost, help bool
 	optHTTPAction, optURI, optBasic,
-	optToken, optBearer, optType string
+	optToken, optBearer, optType,
+	optBinData string
 	stderr, stdout *log.Logger
 	optHeaders     = multiParams{}
 	optData        = multiParams{}
@@ -44,6 +45,7 @@ var (
 func init() {
 
 	flag.BoolVar(&help, "help", false, "display these program options")
+	flag.BoolVar(&optPost, "post", false, "set the HTTP action to POST; this is sugar")
 	flag.BoolVar(&optFormURLEncode, "f", false, "sugar for adding 'Content-Type: application/x-www-form-urlencoded'")
 	flag.BoolVar(&optPostForm, "pf", false, "form-urlencode the POST; sugar for '-X POST -f'")
 	flag.BoolVar(&optSilence, "s", false, "shutup")
@@ -53,6 +55,7 @@ func init() {
 	flag.BoolVar(&optSummary, "summary", false, "after the request is finished, print a brief summary")
 	flag.Var(&optHeaders, "h", "`param=value` headers for the request")
 	flag.Var(&optData, "d", "`param=value` data for the request")
+	flag.StringVar(&optBinData, "bin", "", "data as a string for the body of the request")
 	flag.StringVar(&optHTTPAction, "X", "GET", "specify the HTTP `action` (e.g. GET, POST, etc)")
 
 	flag.StringVar(&optURI, "u", "", "the destination URI; if not provided the URI is assumed to be the last arg")
@@ -108,26 +111,31 @@ func main() {
 		}
 	}
 
-	if optPostForm {
-		optHTTPAction = http.MethodPost
+	switch {
+	case optPostForm:
 		optFormURLEncode = true
+		fallthrough
+	case optPost:
+		optHTTPAction = http.MethodPost
 	}
 
 	var body bytes.Buffer // io.ReadWriter
-	if optQueryString {
+	switch {
+	case optQueryString:
 		remote.RawQuery = data.Encode() // force a query string with -q
-	} else {
-
+	case optReadStdin:
 		if optReadStdin {
 			scanner := bufio.NewScanner(os.Stdin)
 			for scanner.Scan() {
 				body.Write(scanner.Bytes())
 			}
 		}
-
-		if body.Len() == 0 {
-			body.WriteString(data.Encode()) // send the data as the body
-		}
+	case len(optBinData) > 0:
+		body.WriteString(optBinData)
+	case body.Len() == 0:
+		fallthrough
+	default:
+		body.WriteString(data.Encode()) // send the query data as the body
 	}
 
 	req, err := http.NewRequest(optHTTPAction, remote.String(), &body)
@@ -194,6 +202,7 @@ func main() {
 
 	local := os.Stdout
 	if optOutFile {
+		// log.Fatal(resp.Header.Get("Content-Disposition"))
 		fname := path.Base(remote.Path)
 		local, err = os.OpenFile(fname, os.O_RDWR|os.O_TRUNC|os.O_CREATE, 0644)
 		if err != nil {
@@ -206,7 +215,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	stderr.Println("\n")
+	stderr.Println(nl)
 
 	if optSummary {
 		// stderr.Println("\x1b[91m//------------------------------------------------------------------------//\x1b[0m")
