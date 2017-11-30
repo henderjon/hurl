@@ -26,7 +26,6 @@ const (
 	protocol  = "\x1b[91m%s %s %s\x1b[0m\n"
 	header    = "%s\x1b[90m%s:\x1b[0m \x1b[94m%s\x1b[0m\n"
 	summary   = "\x1b[90m%s:\x1b[0m \x1b[94m%s\x1b[0m\n"
-	userAgent = "hurl/v0.1.3-alpha"
 )
 
 var (
@@ -54,7 +53,7 @@ func init() {
 	flag.BoolVar(&optReadStdin, "stdin", false, "read the request body from stdin; request will ingore all -d's")
 	flag.BoolVar(&optSummary, "summary", false, "after the request is finished, print a brief summary")
 	flag.Var(&optHeaders, "h", "`param=value` headers for the request")
-	flag.Var(&optData, "data-urlencoded", "`param=value` data for the request")
+	flag.Var(&optData, "data-urlencode", "`param=value` data for the request")
 	flag.StringVar(&optBinData, "d", "", "data as a string for the body of the request")
 	flag.StringVar(&optHTTPAction, "X", "GET", "specify the HTTP `action` (e.g. GET, POST, etc)")
 
@@ -67,7 +66,8 @@ func init() {
 	flag.Parse()
 
 	if help {
-		fmt.Println("\n\x1b[91mhurl is a utility for making HTTP requests. \x1b[0m\n")
+		fmt.Println("built:", buildTimestamp)
+		fmt.Println("version:", buildVersion)
 		flag.PrintDefaults()
 		os.Exit(0)
 	}
@@ -166,10 +166,15 @@ func main() {
 		req.Header.Set("Content-Type", optType)
 	}
 
-	req.Header.Set("User-Agent", userAgent)
+	req.Header.Set("User-Agent", buildVersion)
 	req.Header.Set("Accept", "*/*")
+	// req.Header.Set("cache-control", "no-cache")
 	req.Header.Set("Host", remote.Host)
-	req.Header.Set("Content-Length", strconv.Itoa(body.Len()))
+
+	if body.Len() > 0 {
+		req.Header.Set("Content-Length", strconv.Itoa(body.Len()))
+	}
+
 	if optFormURLEncode {
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded; charset=utf-8")
 	}
