@@ -5,10 +5,7 @@ DEPLOYMENT_PATH=s3://myon-deployment/pre-release/$(BIN)/$(BIN)-$(HEAD)
 
 LDFLAGS="-X main.buildVersion=$(HEAD) -X main.buildTimestamp=$(TIMESTAMP)"
 
-all: print
-
-.PHONY: build
-build: darwin64 linux64
+all: build
 
 clean:
 	-rm -f $(BIN) $(BIN)-*

@@ -166,7 +166,7 @@ func main() {
 		req.Header.Set("Content-Type", optType)
 	}
 
-	req.Header.Set("User-Agent", buildVersion)
+	req.Header.Set("User-Agent", "hurl/"+buildVersion)
 	req.Header.Set("Accept", "*/*")
 	// req.Header.Set("cache-control", "no-cache")
 	req.Header.Set("Host", remote.Host)
