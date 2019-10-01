@@ -4,10 +4,8 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/base64"
-	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
@@ -28,75 +26,15 @@ const (
 	summary   = "\x1b[90m%s:\x1b[0m \x1b[94m%s\x1b[0m\n"
 )
 
-var (
-	optFormURLEncode, optSilence,
-	optQueryString, optPostForm,
-	optOutFile, optReadStdin,
-	optSummary, optPost, help bool
-	optHTTPAction, optURI, optBasic,
-	optToken, optBearer, optType,
-	optBinData string
-	stderr, stdout *log.Logger
-	optHeaders     = multiParams{}
-	optData        = multiParams{}
-)
-
-func init() {
-
-	flag.BoolVar(&help, "help", false, "display these program options")
-	flag.BoolVar(&optPost, "post", false, "set the HTTP action to POST; this is sugar")
-	flag.BoolVar(&optFormURLEncode, "f", false, "sugar for adding 'Content-Type: application/x-www-form-urlencoded'")
-	flag.BoolVar(&optPostForm, "pf", false, "form-urlencode the POST; sugar for '-X POST -f'")
-	flag.BoolVar(&optSilence, "s", false, "shutup")
-	flag.BoolVar(&optQueryString, "q", false, "append -data-urlencoded's to the target URL as a query string")
-	flag.BoolVar(&optOutFile, "save", false, "write the output to a similarly named local file; to specify a different filename, simply redirect stdout")
-	flag.BoolVar(&optReadStdin, "stdin", false, "read the request body from stdin; request will ingore all -d's")
-	flag.BoolVar(&optSummary, "summary", false, "after the request is finished, print a brief summary")
-	flag.Var(&optHeaders, "h", "`param=value` headers for the request")
-	flag.Var(&optData, "data-urlencode", "`param=value` data for the request")
-	flag.StringVar(&optBinData, "d", "", "data as a string for the body of the request")
-	flag.StringVar(&optHTTPAction, "X", "GET", "specify the HTTP `action` (e.g. GET, POST, etc)")
-
-	flag.StringVar(&optURI, "u", "", "the destination URI; if not provided the URI is assumed to be the last arg")
-	flag.StringVar(&optBasic, "basic", "", "sugar for adding the 'Authorization: Basic $val' header")
-	flag.StringVar(&optToken, "token", "", "sugar for adding the 'Authorization: Token $val' header")
-	flag.StringVar(&optBearer, "bearer", "", "sugar for adding the 'Authorization: Bearer $val' header")
-	flag.StringVar(&optType, "type", "", "sugar for adding the 'Content-Type: $val' header")
-
-	flag.Parse()
-
-	if help {
-		fmt.Println("built:", buildTimestamp)
-		fmt.Println("version:", buildVersion)
-		flag.PrintDefaults()
-		os.Exit(0)
-	}
-
-	args := flag.Args()
-
-	if len(optURI) == 0 {
-		if len(args) == 0 {
-			log.Fatal("The URL should be the last arg or should be specified by -u; use -help for more info")
-		}
-
-		optURI = args[len(args)-1]
-	}
-
-	stdout = log.New(os.Stdout, "", 0)
-	stderr = log.New(os.Stderr, "", 0)
-	if optSilence {
-		stderr = log.New(ioutil.Discard, "", 0)
-	}
-
-}
-
 func main() {
+
+	params := getParams(getBuildVersion(), getBuildTimestamp(), getCompiledBy())
 
 	client := http.Client{}
 
-	remote, err := url.Parse(optURI)
+	remote, err := url.Parse(params.optURI)
 	if err != nil {
-		log.Fatal("Unable to parse", optURI)
+		log.Fatal("Unable to parse", params.optURI)
 	}
 
 	if remote.Scheme == "" {
@@ -105,65 +43,61 @@ func main() {
 	}
 
 	data := url.Values{}
-	for name, slice := range optData {
-		for _, v := range slice {
-			data.Add(name, v)
-		}
-	}
+	parseMultiData(params.optData, data)
 
 	switch {
-	case optPostForm:
-		optFormURLEncode = true
+	case params.optPostForm:
+		params.optFormURLEncode = true
 		fallthrough
-	case optPost:
-		optHTTPAction = http.MethodPost
+	case params.optPost:
+		params.optHTTPAction = http.MethodPost
 	}
 
 	var body bytes.Buffer // io.ReadWriter
 	switch {
-	case optQueryString:
+	case params.optQueryString:
 		remote.RawQuery = data.Encode() // force a query string with -q
-	case optReadStdin:
-		if optReadStdin {
+	case params.optReadStdin:
+		if params.optReadStdin {
 			scanner := bufio.NewScanner(os.Stdin)
 			for scanner.Scan() {
 				body.Write(scanner.Bytes())
 			}
 		}
-	case len(optBinData) > 0:
-		body.WriteString(optBinData)
+	case len(params.optBinData) > 0:
+		body.WriteString(params.optBinData)
 	case body.Len() == 0:
 		fallthrough
 	default:
 		body.WriteString(data.Encode()) // send the query data as the body
 	}
 
-	req, err := http.NewRequest(optHTTPAction, remote.String(), &body)
+	req, err := http.NewRequest(params.optHTTPAction, remote.String(), &body)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// sugar for basic auth
-	if len(optBasic) > 0 {
-		if strings.Contains(optBasic, ":") {
-			optBasic = base64.StdEncoding.EncodeToString([]byte(optBasic))
+	if len(params.optBasic) > 0 {
+		if strings.Contains(params.optBasic, ":") {
+			params.optBasic = base64.StdEncoding.EncodeToString([]byte(params.optBasic))
 		}
-		req.Header.Set("Authorization", "Basic "+optBasic)
+		req.Header.Set("Authorization", "Basic "+params.optBasic)
 	}
 
 	// sugar for token auth
-	if len(optToken) > 0 {
-		req.Header.Set("Authorization", "Token "+optToken)
+	if len(params.optToken) > 0 {
+		req.Header.Set("Authorization", "Token "+params.optToken)
 	}
 
 	// sugar for bearer auth
-	if len(optBearer) > 0 {
-		req.Header.Set("Authorization", "Bearer "+optBearer)
+	if len(params.optBearer) > 0 {
+		req.Header.Set("Authorization", "Bearer "+params.optBearer)
 	}
 
 	// sugar for Content-Type
-	if len(optType) > 0 {
-		req.Header.Set("Content-Type", optType)
+	if len(params.optType) > 0 {
+		req.Header.Set("Content-Type", params.optType)
 	}
 
 	req.Header.Set("User-Agent", "hurl/"+buildVersion)
@@ -175,15 +109,11 @@ func main() {
 		req.Header.Set("Content-Length", strconv.Itoa(body.Len()))
 	}
 
-	if optFormURLEncode {
+	if params.optFormURLEncode {
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded; charset=utf-8")
 	}
 
-	for name, slice := range optHeaders {
-		for _, v := range slice {
-			req.Header.Add(name, v)
-		}
-	}
+	parseMultiData(params.optHeaders, req.Header)
 
 	stderr.Printf(protocol, req.Method, req.URL.RequestURI(), req.Proto)
 	printHeaders(req.Header)
@@ -206,7 +136,7 @@ func main() {
 	stderr.Print(nl)
 
 	local := os.Stdout
-	if optOutFile {
+	if params.optOutFile {
 		// log.Fatal(resp.Header.Get("Content-Disposition"))
 		fname := path.Base(remote.Path)
 		local, err = os.OpenFile(fname, os.O_RDWR|os.O_TRUNC|os.O_CREATE, 0644)
@@ -222,12 +152,24 @@ func main() {
 
 	stderr.Println(nl)
 
-	if optSummary {
+	if params.optSummary {
 		// stderr.Println("\x1b[91m//------------------------------------------------------------------------//\x1b[0m")
 		stderr.Println("\x1b[91m---------------\x1b[0m")
 		stderr.Printf(summary, "Content-Length", strconv.FormatInt(resp.ContentLength, 10))
 		stderr.Printf(summary, "Bytes Received", strconv.FormatInt(n, 10))
 		stderr.Printf(summary, "Request Duration", time.Since(start).String())
+	}
+}
+
+type adder interface {
+	Add(string, string)
+}
+
+func parseMultiData(src multiParams, dest adder) {
+	for name, slice := range src {
+		for _, v := range slice {
+			dest.Add(name, v)
+		}
 	}
 }
 
@@ -239,10 +181,8 @@ func printHeaders(headers map[string][]string) {
 	}
 }
 
-type multiParams map[string][]string
-
 func (d multiParams) String() string {
-	return fmt.Sprintf("%d", d)
+	return fmt.Sprintf("%d", len(d))
 }
 
 func (d multiParams) Set(value string) error {
